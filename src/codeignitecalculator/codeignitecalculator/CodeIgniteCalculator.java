@@ -39,16 +39,33 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     private final LinearLayout themeList;
     private final ArrayList<String> history = new ArrayList<String>();
 
-    private int backgroundColor = Color.rgb(15, 23, 42);
-    private int panelColor = Color.rgb(30, 41, 59);
-    private int displayColor = Color.rgb(2, 6, 23);
-    private int numberButtonColor = Color.rgb(51, 65, 85);
-    private int operatorButtonColor = Color.rgb(37, 99, 235);
-    private int functionButtonColor = Color.rgb(71, 85, 105);
-    private int equalsButtonColor = Color.rgb(34, 197, 94);
-    private int dangerButtonColor = Color.rgb(239, 68, 68);
+    private int backgroundColor = Color.argb(255, 13, 18, 33);
+    private int panelColor = Color.argb(214, 26, 35, 56);
+    private int displayColor = Color.argb(232, 5, 9, 20);
+    private int historyColor = Color.argb(166, 17, 24, 39);
+    private int numberButtonColor = Color.argb(218, 49, 61, 86);
+    private int operatorButtonColor = Color.argb(230, 42, 112, 255);
+    private int functionButtonColor = Color.argb(218, 78, 89, 116);
+    private int equalsButtonColor = Color.argb(235, 35, 200, 120);
+    private int dangerButtonColor = Color.argb(230, 245, 77, 91);
+    private int buttonOutlineColor = Color.argb(155, 255, 255, 255);
+    private int buttonOutlineWidthDp = 1;
     private int textColor = Color.WHITE;
-    private int mutedTextColor = Color.rgb(185, 194, 210);
+    private int mutedTextColor = Color.argb(230, 202, 211, 226);
+    private String customThemeName = "Custom";
+    private int customBackgroundColor = backgroundColor;
+    private int customPanelColor = panelColor;
+    private int customDisplayColor = displayColor;
+    private int customHistoryColor = historyColor;
+    private int customNumberButtonColor = numberButtonColor;
+    private int customOperatorButtonColor = operatorButtonColor;
+    private int customFunctionButtonColor = functionButtonColor;
+    private int customEqualsButtonColor = equalsButtonColor;
+    private int customDangerButtonColor = dangerButtonColor;
+    private int customTextColor = textColor;
+    private int customMutedTextColor = mutedTextColor;
+    private int customButtonOutlineColor = buttonOutlineColor;
+    private int customButtonOutlineWidthDp = buttonOutlineWidthDp;
     private int cornerRadiusDp = 18;
     private boolean advancedMode = false;
     private boolean drawerOpen = false;
@@ -141,8 +158,8 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         calculatorPanel.addView(modeSelector, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
         calculatorPanel.addView(keypad, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        root.addView(sideDrawer, new LinearLayout.LayoutParams(dp(0), ViewGroup.LayoutParams.MATCH_PARENT));
         root.addView(calculatorPanel, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        root.addView(sideDrawer, new LinearLayout.LayoutParams(dp(0), ViewGroup.LayoutParams.MATCH_PARENT));
 
         loadHistoryFromDatabase();
         applyStyle();
@@ -173,11 +190,11 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         for (int r = 0; r < rows.length; r++) {
             LinearLayout row = new LinearLayout(container.$context());
             row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setPadding(0, dp(2), 0, dp(2));
+            row.setPadding(0, dp(1), 0, dp(1));
             for (int c = 0; c < rows[r].length; c++) {
                 TextView button = makeButton(rows[r][c]);
                 LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(52), 1f);
-                params.setMargins(dp(2), 0, dp(2), 0);
+                params.setMargins(dp(1), 0, dp(1), 0);
                 row.addView(button, params);
             }
             keypad.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -192,7 +209,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         button.setTypeface(Typeface.DEFAULT_BOLD);
         button.setGravity(Gravity.CENTER);
         button.setTextColor(textColor);
-        button.setBackground(makeRound(buttonColor(label), dp(14), 0));
+        button.setBackground(makeRound(buttonColor(label), dp(14), dp(buttonOutlineWidthDp)));
         button.setPadding(dp(3), dp(3), dp(3), dp(3));
         button.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { press(label); }});
         return button;
@@ -256,7 +273,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     private String format(double v) { if (Double.isNaN(v) || Double.isInfinite(v)) throw new RuntimeException("Math error"); return resultFormat.format(v); }
     private int buttonColor(String label) { if ("=".equals(label)) return equalsButtonColor; if ("C".equals(label) || "⌫".equals(label) || "HIST".equals(label)) return dangerButtonColor; if ("+-×÷^()%±".contains(label)) return operatorButtonColor; if (Character.isDigit(label.charAt(0)) || ".".equals(label)) return numberButtonColor; return functionButtonColor; }
 
-    private void applyStyle() { root.setBackgroundColor(backgroundColor); calculatorPanel.setBackgroundColor(backgroundColor); sideDrawer.setBackground(makeRound(panelColor, dp(18), dp(1))); titleView.setText(title); titleView.setTextColor(textColor); drawerToggle.setTextColor(textColor); drawerToggle.setBackground(makeRound(panelColor, dp(18), 0)); displayView.setTextColor(textColor); displayView.setBackground(makeRound(displayColor, dp(cornerRadiusDp), dp(1))); modeView.setTextColor(mutedTextColor); modeSelector.setTextColor(textColor); modeSelector.setBackground(makeRound(panelColor, dp(16), dp(1))); refreshModeSelector(); rebuildThemes(); redrawHistory(); }
+    private void applyStyle() { root.setBackgroundColor(backgroundColor); calculatorPanel.setBackgroundColor(backgroundColor); sideDrawer.setBackground(makeRound(historyColor, dp(18), dp(1))); titleView.setText(title); titleView.setTextColor(textColor); drawerToggle.setTextColor(textColor); drawerToggle.setBackground(makeRound(panelColor, dp(18), dp(1))); displayView.setTextColor(textColor); displayView.setBackground(makeRound(displayColor, dp(cornerRadiusDp), dp(1))); modeView.setTextColor(mutedTextColor); modeSelector.setTextColor(textColor); modeSelector.setBackground(makeRound(panelColor, dp(16), dp(1))); refreshModeSelector(); rebuildThemes(); redrawHistory(); }
     private void refreshModeSelector() { if (modeSelector != null) modeSelector.setText("Mode: " + (advancedMode ? "Advanced" : "Basic") + " ▾"); }
     private TextView makeTab(String label) { TextView tab = new TextView(container.$context()); tab.setText(label); tab.setTextSize(15); tab.setTypeface(Typeface.DEFAULT_BOLD); tab.setGravity(Gravity.CENTER); tab.setPadding(dp(8), 0, dp(8), 0); return tab; }
     private TextView makeHeaderAction(String label) { TextView action = makeTab(label); action.setPadding(dp(12), 0, dp(12), 0); return action; }
@@ -269,6 +286,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         addThemeOption(0, "Midnight");
         addThemeOption(1, "Ocean");
         addThemeOption(2, "Solar");
+        addThemeOption(3, customThemeName);
     }
 
     private void addThemeOption(final int theme, String label) {
@@ -297,15 +315,21 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         redrawHistory();
     }
 
-    @SimpleFunction(description = "Opens or collapses the left history and theme navigation panel.") public void SetHistoryDrawerOpen(boolean value) { drawerOpen = value; ViewGroup.LayoutParams params = sideDrawer.getLayoutParams(); if (params != null) { params.width = drawerOpen ? dp(drawerWidthDp) : 0; sideDrawer.setLayoutParams(params); } sideDrawer.setVisibility(drawerOpen ? View.VISIBLE : View.GONE); drawerToggle.setText(drawerOpen ? "‹ History" : "☰ History"); }
+    @SimpleFunction(description = "Opens or collapses the right history and theme navigation panel.") public void SetHistoryDrawerOpen(boolean value) { drawerOpen = value; ViewGroup.LayoutParams params = sideDrawer.getLayoutParams(); if (params != null) { params.width = drawerOpen ? dp(drawerWidthDp) : 0; sideDrawer.setLayoutParams(params); } sideDrawer.setVisibility(drawerOpen ? View.VISIBLE : View.GONE); drawerToggle.setText(drawerOpen ? "History ›" : "History ☰"); }
     @SimpleFunction(description = "Sets the open history drawer width in dp. Values are clamped between 160 and 360.") public void SetHistoryDrawerWidth(int widthDp) { drawerWidthDp = Math.max(160, Math.min(360, widthDp)); if (drawerOpen) SetHistoryDrawerOpen(true); }
     @SimpleFunction(description = "Returns the open history drawer width in dp.") public int HistoryDrawerWidth() { return drawerWidthDp; }
     @SimpleFunction(description = "Saves the current history to local database storage.") public void SaveHistoryToDatabase() { saveHistoryToDatabase(); }
     @SimpleFunction(description = "Loads saved history from local database storage.") public void LoadHistoryFromDatabase() { loadHistoryFromDatabase(); }
-    @SimpleFunction(description = "Selects one of the built-in themes. Use 0 for Midnight, 1 for Ocean, or 2 for Solar.") public void SetTheme(int theme) { selectedTheme = theme; if (theme == 1) { backgroundColor = Color.rgb(3, 37, 65); panelColor = Color.rgb(12, 74, 110); displayColor = Color.rgb(2, 24, 43); operatorButtonColor = Color.rgb(14, 165, 233); equalsButtonColor = Color.rgb(45, 212, 191); functionButtonColor = Color.rgb(30, 94, 131); numberButtonColor = Color.rgb(21, 63, 94); textColor = Color.WHITE; mutedTextColor = Color.rgb(186, 230, 253); } else if (theme == 2) { backgroundColor = Color.rgb(255, 251, 235); panelColor = Color.rgb(254, 243, 199); displayColor = Color.WHITE; operatorButtonColor = Color.rgb(245, 158, 11); equalsButtonColor = Color.rgb(22, 163, 74); functionButtonColor = Color.rgb(251, 191, 36); numberButtonColor = Color.rgb(253, 230, 138); textColor = Color.rgb(31, 41, 55); mutedTextColor = Color.rgb(92, 72, 48); } else { selectedTheme = 0; backgroundColor = Color.rgb(15, 23, 42); panelColor = Color.rgb(30, 41, 59); displayColor = Color.rgb(2, 6, 23); numberButtonColor = Color.rgb(51, 65, 85); operatorButtonColor = Color.rgb(37, 99, 235); functionButtonColor = Color.rgb(75, 85, 105); equalsButtonColor = Color.rgb(34, 197, 94); textColor = Color.WHITE; mutedTextColor = Color.rgb(185, 194, 210); } applyStyle(); rebuildKeypad(); }
+    @SimpleFunction(description = "Selects one of the built-in themes. Use 0 for Midnight, 1 for Ocean, 2 for Solar, or 3 for the custom theme created with CreateTheme.") public void SetTheme(int theme) { selectedTheme = theme; if (theme == 1) { backgroundColor = Color.argb(255, 2, 29, 53); panelColor = Color.argb(215, 10, 73, 108); displayColor = Color.argb(235, 1, 22, 39); historyColor = Color.argb(180, 8, 47, 73); operatorButtonColor = Color.argb(232, 14, 165, 233); equalsButtonColor = Color.argb(235, 45, 212, 191); functionButtonColor = Color.argb(218, 29, 91, 128); numberButtonColor = Color.argb(218, 20, 61, 92); dangerButtonColor = Color.argb(232, 244, 63, 94); buttonOutlineColor = Color.argb(150, 186, 230, 253); buttonOutlineWidthDp = 1; textColor = Color.WHITE; mutedTextColor = Color.argb(230, 186, 230, 253); } else if (theme == 2) { backgroundColor = Color.argb(255, 255, 251, 235); panelColor = Color.argb(225, 254, 243, 199); displayColor = Color.argb(235, 255, 255, 255); historyColor = Color.argb(210, 254, 240, 180); operatorButtonColor = Color.argb(232, 245, 158, 11); equalsButtonColor = Color.argb(235, 22, 163, 74); functionButtonColor = Color.argb(220, 251, 191, 36); numberButtonColor = Color.argb(225, 253, 230, 138); dangerButtonColor = Color.argb(232, 220, 38, 38); buttonOutlineColor = Color.argb(135, 120, 89, 30); buttonOutlineWidthDp = 1; textColor = Color.rgb(31, 41, 55); mutedTextColor = Color.rgb(92, 72, 48); } else if (theme == 3) { selectedTheme = 3; backgroundColor = customBackgroundColor; panelColor = customPanelColor; displayColor = customDisplayColor; historyColor = customHistoryColor; numberButtonColor = customNumberButtonColor; operatorButtonColor = customOperatorButtonColor; functionButtonColor = customFunctionButtonColor; equalsButtonColor = customEqualsButtonColor; dangerButtonColor = customDangerButtonColor; textColor = customTextColor; mutedTextColor = customMutedTextColor; buttonOutlineColor = customButtonOutlineColor; buttonOutlineWidthDp = customButtonOutlineWidthDp; } else { selectedTheme = 0; backgroundColor = Color.argb(255, 13, 18, 33); panelColor = Color.argb(214, 26, 35, 56); displayColor = Color.argb(232, 5, 9, 20); historyColor = Color.argb(166, 17, 24, 39); numberButtonColor = Color.argb(218, 49, 61, 86); operatorButtonColor = Color.argb(230, 42, 112, 255); functionButtonColor = Color.argb(218, 78, 89, 116); equalsButtonColor = Color.argb(235, 35, 200, 120); dangerButtonColor = Color.argb(230, 245, 77, 91); buttonOutlineColor = Color.argb(155, 255, 255, 255); buttonOutlineWidthDp = 1; textColor = Color.WHITE; mutedTextColor = Color.argb(230, 202, 211, 226); } applyStyle(); rebuildKeypad(); }
 
-    private GradientDrawable makeRound(int color, int radius, int stroke) { GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(radius); if (stroke > 0) d.setStroke(stroke, Color.rgb(68, 78, 99)); return d; }
+    private GradientDrawable makeRound(int color, int radius, int stroke) { GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(radius); if (stroke > 0) d.setStroke(stroke, buttonOutlineColor); return d; }
     private int dp(int value) { return Math.round(value * container.$context().getResources().getDisplayMetrics().density); }
+
+
+    @SimpleFunction(description = "Sets section background colors: root background, header/mode panel, display, and right history drawer. Use App Inventor color values, including alpha/RGBA colors.") public void SetSectionColors(int background, int panel, int display, int historyPanel) { backgroundColor = background; panelColor = panel; displayColor = display; historyColor = historyPanel; customBackgroundColor = background; customPanelColor = panel; customDisplayColor = display; customHistoryColor = historyPanel; selectedTheme = 3; applyStyle(); rebuildKeypad(); }
+    @SimpleFunction(description = "Sets calculator button colors for number, operator, function, equals, and danger/action buttons. Use App Inventor color values, including alpha/RGBA colors.") public void SetButtonColors(int numbers, int operators, int functions, int equals, int danger) { numberButtonColor = numbers; operatorButtonColor = operators; functionButtonColor = functions; equalsButtonColor = equals; dangerButtonColor = danger; customNumberButtonColor = numbers; customOperatorButtonColor = operators; customFunctionButtonColor = functions; customEqualsButtonColor = equals; customDangerButtonColor = danger; selectedTheme = 3; applyStyle(); rebuildKeypad(); }
+    @SimpleFunction(description = "Sets the outline color and outline width in dp for all calculator buttons and panels.") public void SetButtonOutline(int outlineColor, int outlineWidthDp) { buttonOutlineColor = outlineColor; buttonOutlineWidthDp = Math.max(0, outlineWidthDp); customButtonOutlineColor = buttonOutlineColor; customButtonOutlineWidthDp = buttonOutlineWidthDp; selectedTheme = 3; applyStyle(); rebuildKeypad(); }
+    @SimpleFunction(description = "Creates and applies a custom RGBA-friendly theme with colors for every section, button group, text, and button outline.") public void CreateTheme(String name, int background, int panel, int display, int historyPanel, int numbers, int operators, int functions, int equals, int danger, int text, int mutedText, int outline, int outlineWidthDp) { customThemeName = name == null || name.trim().length() == 0 ? "Custom" : name; customBackgroundColor = background; customPanelColor = panel; customDisplayColor = display; customHistoryColor = historyPanel; customNumberButtonColor = numbers; customOperatorButtonColor = operators; customFunctionButtonColor = functions; customEqualsButtonColor = equals; customDangerButtonColor = danger; customTextColor = text; customMutedTextColor = mutedText; customButtonOutlineColor = outline; customButtonOutlineWidthDp = Math.max(0, outlineWidthDp); selectedTheme = 3; SetTheme(3); }
 
     @SimpleFunction(description = "Sets the displayed calculator expression.") public void SetExpression(String value) { expression = value == null ? "" : value; updateDisplay(); }
     @SimpleFunction(description = "Returns the current calculator expression or result.") public String Expression() { return expression; }
