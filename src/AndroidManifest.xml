@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="chatinputbox.chatinputboxnew">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="codeignitecalculator.codeignitecalculator">
   <application>
     <!-- <activity android:name=".MainActivity">
       <intent-filter>

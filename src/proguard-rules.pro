@@ -1,7 +1,7 @@
 # Add any ProGuard configurations specific to this
 # extension here.
 
--keep public class chatinputbox.chatinputboxnew.ChatInputBoxNew {
+-keep public class codeignitecalculator.codeignitecalculator.CodeIgniteCalculator {
     public *;
  }
 -keeppackagenames gnu.kawa**, gnu.expr**
@@ -10,6 +10,6 @@
 -allowaccessmodification
 -mergeinterfacesaggressively
 
--repackageclasses 'chatinputbox/chatinputboxnew/repack'
+-repackageclasses 'codeignitecalculator/codeignitecalculator/repack'
 -flattenpackagehierarchy
 -dontpreverify
