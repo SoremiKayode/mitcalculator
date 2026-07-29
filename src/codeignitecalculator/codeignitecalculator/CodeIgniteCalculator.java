@@ -12,9 +12,12 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import com.google.appinventor.components.annotations.DesignerComponent;
 import com.google.appinventor.components.annotations.SimpleEvent;
 import com.google.appinventor.components.annotations.SimpleFunction;
+import com.google.appinventor.components.annotations.SimpleObject;
 import com.google.appinventor.components.annotations.SimpleProperty;
+import com.google.appinventor.components.common.ComponentCategory;
 import com.google.appinventor.components.runtime.AndroidViewComponent;
 import com.google.appinventor.components.runtime.ComponentContainer;
 import com.google.appinventor.components.runtime.EventDispatcher;
@@ -22,6 +25,13 @@ import com.google.appinventor.components.runtime.EventDispatcher;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 
+@DesignerComponent(
+        version = 1,
+        description = "Visible professional scientific calculator UI extension with history, themes, and advanced operations.",
+        category = ComponentCategory.EXTENSION,
+        nonVisible = false,
+        iconName = "icon.png")
+@SimpleObject(external = true)
 public class CodeIgniteCalculator extends AndroidViewComponent {
 
     private final ComponentContainer container;
@@ -98,7 +108,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         titleView.setTextSize(20);
         titleView.setTypeface(Typeface.DEFAULT_BOLD);
         titleView.setGravity(Gravity.CENTER_VERTICAL);
-        titleView.setPadding(dp(4), 0, dp(4), dp(8));
+        titleView.setPadding(dp(4), dp(4), dp(4), dp(4));
 
         drawerToggle = makeHeaderAction("☰ History");
         drawerToggle.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { SetHistoryDrawerOpen(!drawerOpen); }});
@@ -106,6 +116,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         LinearLayout header = new LinearLayout(container.$context());
         header.setOrientation(LinearLayout.HORIZONTAL);
         header.setGravity(Gravity.CENTER_VERTICAL);
+        header.setPadding(0, 0, 0, dp(8));
         header.addView(titleView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         header.addView(drawerToggle, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)));
 
@@ -120,7 +131,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         modeView = new TextView(container.$context());
         modeView.setTextSize(12);
         modeView.setGravity(Gravity.RIGHT);
-        modeView.setPadding(0, dp(6), dp(6), dp(6));
+        modeView.setPadding(0, dp(8), dp(6), dp(8));
 
         modeSelector = makeTab("Mode: Basic ▾");
         calculatorPanel.setOnTouchListener(new View.OnTouchListener() { public boolean onTouch(View v, MotionEvent event) { if (drawerOpen && event.getAction() == MotionEvent.ACTION_DOWN) SetHistoryDrawerOpen(false); return false; }});
@@ -128,9 +139,12 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
 
         keypad = new LinearLayout(container.$context());
         keypad.setOrientation(LinearLayout.VERTICAL);
+        keypad.setGravity(Gravity.TOP);
+        keypad.setPadding(0, dp(6), 0, 0);
 
         LinearLayout drawerHeader = new LinearLayout(container.$context());
         drawerHeader.setOrientation(LinearLayout.HORIZONTAL);
+        drawerHeader.setPadding(0, 0, 0, dp(8));
         TextView historyTitle = makeSectionTitle("History");
         drawerCollapse = makeHeaderAction("›");
         drawerCollapse.setTextSize(24);
@@ -153,9 +167,13 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         sideDrawer.addView(themeList, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         calculatorPanel.addView(header, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        calculatorPanel.addView(displayView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(104)));
+        LinearLayout.LayoutParams displayParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(104));
+        displayParams.setMargins(0, 0, 0, dp(6));
+        calculatorPanel.addView(displayView, displayParams);
         calculatorPanel.addView(modeView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        calculatorPanel.addView(modeSelector, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
+        LinearLayout.LayoutParams modeParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44));
+        modeParams.setMargins(0, 0, 0, dp(6));
+        calculatorPanel.addView(modeSelector, modeParams);
         calculatorPanel.addView(keypad, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
         root.addView(calculatorPanel, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
@@ -190,14 +208,16 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         for (int r = 0; r < rows.length; r++) {
             LinearLayout row = new LinearLayout(container.$context());
             row.setOrientation(LinearLayout.HORIZONTAL);
-            row.setPadding(0, dp(1), 0, dp(1));
+            row.setPadding(0, 0, 0, 0);
             for (int c = 0; c < rows[r].length; c++) {
                 TextView button = makeButton(rows[r][c]);
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(52), 1f);
-                params.setMargins(dp(1), 0, dp(1), 0);
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(48), 1f);
+                params.setMargins(dp(2), 0, dp(2), 0);
                 row.addView(button, params);
             }
-            keypad.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
+            rowParams.setMargins(0, 0, 0, dp(4));
+            keypad.addView(row, rowParams);
         }
         refreshModeSelector();
     }
