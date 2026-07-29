@@ -1,6 +1,6 @@
 ---
-name: ChatInputBox
-description: ChatGPT-style prompt input box with send and audio buttons.
+name: ScientificCalculator
+description: Professional scientific calculator UI extension for MIT App Inventor with history and advanced operations.
 
 version:
   number: auto
