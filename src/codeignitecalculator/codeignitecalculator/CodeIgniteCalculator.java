@@ -1,4 +1,4 @@
-package chatinputbox.chatinputboxnew;
+package codeignitecalculator.codeignitecalculator;
 
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -11,17 +11,27 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
+import com.google.appinventor.components.annotations.DesignerComponent;
 import com.google.appinventor.components.annotations.SimpleEvent;
 import com.google.appinventor.components.annotations.SimpleFunction;
 import com.google.appinventor.components.annotations.SimpleProperty;
+import com.google.appinventor.components.annotations.SimpleObject;
 import com.google.appinventor.components.runtime.AndroidViewComponent;
 import com.google.appinventor.components.runtime.ComponentContainer;
 import com.google.appinventor.components.runtime.EventDispatcher;
+import com.google.appinventor.components.common.ComponentCategory;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 
-public class ChatInputBox extends AndroidViewComponent {
+@DesignerComponent(
+        version = 1,
+        description = "Visible scientific calculator UI that can be dropped onto a Screen or VerticalArrangement.",
+        category = ComponentCategory.EXTENSION,
+        nonVisible = false,
+        iconName = "images/extension.png")
+@SimpleObject(external = true)
+public class CodeIgniteCalculator extends AndroidViewComponent {
 
     private final ComponentContainer container;
     private final LinearLayout root;
@@ -52,7 +62,7 @@ public class ChatInputBox extends AndroidViewComponent {
     private String title = "Scientific Calculator";
     private final DecimalFormat resultFormat = new DecimalFormat("0.##########");
 
-    public ChatInputBox(ComponentContainer container) {
+    public CodeIgniteCalculator(ComponentContainer container) {
         super(container);
         this.container = container;
 
@@ -110,8 +120,9 @@ public class ChatInputBox extends AndroidViewComponent {
         applyStyle();
         rebuildKeypad();
         updateDisplay();
+        container.$add(this);
         Width(ViewGroup.LayoutParams.MATCH_PARENT);
-        Height(ViewGroup.LayoutParams.MATCH_PARENT);
+        Height(dp(520));
     }
 
     @Override
@@ -121,7 +132,7 @@ public class ChatInputBox extends AndroidViewComponent {
     public void AddToArrangement(AndroidViewComponent arrangement) {
         ViewGroup parent = (ViewGroup) arrangement.getView();
         if (root.getParent() != null) ((ViewGroup) root.getParent()).removeView(root);
-        parent.addView(root, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        parent.addView(root, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
     private void rebuildKeypad() {

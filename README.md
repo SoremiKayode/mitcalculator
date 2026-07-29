@@ -1,5 +1,5 @@
-## Scientific Calculator Extension
+## CodeIgniteCalculator Extension
 
-An MIT App Inventor 2 extension created with Rush. It provides a polished scientific calculator UI with a display label, basic and advanced keypad tabs, expression evaluation, trigonometric functions, and calculation history.
+An MIT App Inventor 2 extension created with Rush. It provides a visible, drop-in scientific calculator component with a display label, basic and advanced keypad tabs, expression evaluation, trigonometric functions, and calculation history.
 
-The Java class name remains `ChatInputBox` for compatibility with the duplicated Rush project structure, but the component behavior is now a scientific calculator.
+The extension blocks and visible component are named `CodeIgniteCalculator` instead of `ChatInputBox`. Add the component directly to a Screen or VerticalArrangement, or use `AddToArrangement` to place it into an Arrangement at runtime.
