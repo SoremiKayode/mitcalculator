@@ -11,26 +11,16 @@ import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
 
-import com.google.appinventor.components.annotations.DesignerComponent;
 import com.google.appinventor.components.annotations.SimpleEvent;
 import com.google.appinventor.components.annotations.SimpleFunction;
 import com.google.appinventor.components.annotations.SimpleProperty;
-import com.google.appinventor.components.annotations.SimpleObject;
 import com.google.appinventor.components.runtime.AndroidViewComponent;
 import com.google.appinventor.components.runtime.ComponentContainer;
 import com.google.appinventor.components.runtime.EventDispatcher;
-import com.google.appinventor.components.common.ComponentCategory;
 
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 
-@DesignerComponent(
-        version = 1,
-        description = "Visible scientific calculator UI that can be dropped onto a Screen or VerticalArrangement.",
-        category = ComponentCategory.EXTENSION,
-        nonVisible = false,
-        iconName = "images/extension.png")
-@SimpleObject(external = true)
 public class CodeIgniteCalculator extends AndroidViewComponent {
 
     private final ComponentContainer container;
