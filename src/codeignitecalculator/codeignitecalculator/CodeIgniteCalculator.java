@@ -1,12 +1,12 @@
 package codeignitecalculator.codeignitecalculator;
 
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.graphics.Typeface;
 import android.graphics.drawable.GradientDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.HorizontalScrollView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -25,14 +25,17 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
 
     private final ComponentContainer container;
     private final LinearLayout root;
+    private final LinearLayout calculatorPanel;
+    private final LinearLayout sideDrawer;
     private final TextView titleView;
     private final TextView displayView;
     private final TextView modeView;
+    private final TextView drawerToggle;
+    private final TextView modeSelector;
     private final LinearLayout historyList;
     private final LinearLayout keypad;
-    private final LinearLayout tabBar;
-    private final TextView basicTab;
-    private final TextView advancedTab;
+    private final TextView drawerCollapse;
+    private final LinearLayout themeList;
     private final ArrayList<String> history = new ArrayList<String>();
 
     private int backgroundColor = Color.rgb(18, 22, 31);
@@ -47,9 +50,12 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     private int mutedTextColor = Color.rgb(185, 194, 210);
     private int cornerRadiusDp = 18;
     private boolean advancedMode = false;
+    private boolean drawerOpen = false;
+    private int selectedTheme = 0;
     private boolean radians = false;
     private String expression = "";
     private String title = "Scientific Calculator";
+    private static final String HISTORY_PREF = "CodeIgniteCalculatorHistory";
     private final DecimalFormat resultFormat = new DecimalFormat("0.##########");
 
     public CodeIgniteCalculator(ComponentContainer container) {
@@ -57,14 +63,30 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         this.container = container;
 
         root = new LinearLayout(container.$context());
-        root.setOrientation(LinearLayout.VERTICAL);
+        root.setOrientation(LinearLayout.HORIZONTAL);
         root.setPadding(dp(12), dp(12), dp(12), dp(12));
+
+        calculatorPanel = new LinearLayout(container.$context());
+        calculatorPanel.setOrientation(LinearLayout.VERTICAL);
+
+        sideDrawer = new LinearLayout(container.$context());
+        sideDrawer.setOrientation(LinearLayout.VERTICAL);
+        sideDrawer.setPadding(dp(10), dp(10), dp(10), dp(10));
 
         titleView = new TextView(container.$context());
         titleView.setTextSize(20);
         titleView.setTypeface(Typeface.DEFAULT_BOLD);
         titleView.setGravity(Gravity.CENTER_VERTICAL);
         titleView.setPadding(dp(4), 0, dp(4), dp(8));
+
+        drawerToggle = makeHeaderAction("☰ History");
+        drawerToggle.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { SetHistoryDrawerOpen(!drawerOpen); }});
+
+        LinearLayout header = new LinearLayout(container.$context());
+        header.setOrientation(LinearLayout.HORIZONTAL);
+        header.setGravity(Gravity.CENTER_VERTICAL);
+        header.addView(titleView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        header.addView(drawerToggle, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)));
 
         displayView = new TextView(container.$context());
         displayView.setTextSize(32);
@@ -79,40 +101,53 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         modeView.setGravity(Gravity.RIGHT);
         modeView.setPadding(0, dp(6), dp(6), dp(6));
 
+        modeSelector = makeTab("Mode: Basic ▾");
+        modeSelector.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { SetAdvancedMode(!advancedMode); }});
+
+        keypad = new LinearLayout(container.$context());
+        keypad.setOrientation(LinearLayout.VERTICAL);
+
+        LinearLayout drawerHeader = new LinearLayout(container.$context());
+        drawerHeader.setOrientation(LinearLayout.HORIZONTAL);
+        TextView historyTitle = makeSectionTitle("History");
+        drawerCollapse = makeHeaderAction("›");
+        drawerCollapse.setTextSize(24);
+        drawerCollapse.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { SetHistoryDrawerOpen(false); }});
+        drawerHeader.addView(historyTitle, new LinearLayout.LayoutParams(0, dp(42), 1f));
+        drawerHeader.addView(drawerCollapse, new LinearLayout.LayoutParams(dp(42), dp(42)));
+
         ScrollView historyScroll = new ScrollView(container.$context());
         historyList = new LinearLayout(container.$context());
         historyList.setOrientation(LinearLayout.VERTICAL);
-        historyList.setPadding(dp(8), dp(8), dp(8), dp(8));
+        historyList.setPadding(dp(4), dp(4), dp(4), dp(4));
         historyScroll.addView(historyList);
 
-        tabBar = new LinearLayout(container.$context());
-        tabBar.setOrientation(LinearLayout.HORIZONTAL);
-        tabBar.setPadding(0, dp(8), 0, dp(8));
-        basicTab = makeTab("Basic");
-        advancedTab = makeTab("Advanced");
-        basicTab.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { SetAdvancedMode(false); }});
-        advancedTab.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { SetAdvancedMode(true); }});
-        tabBar.addView(basicTab, new LinearLayout.LayoutParams(0, dp(42), 1f));
-        tabBar.addView(advancedTab, new LinearLayout.LayoutParams(0, dp(42), 1f));
+        themeList = new LinearLayout(container.$context());
+        themeList.setOrientation(LinearLayout.VERTICAL);
 
-        HorizontalScrollView keyScroll = new HorizontalScrollView(container.$context());
-        keypad = new LinearLayout(container.$context());
-        keypad.setOrientation(LinearLayout.VERTICAL);
-        keyScroll.addView(keypad);
+        sideDrawer.addView(drawerHeader, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        sideDrawer.addView(historyScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
+        sideDrawer.addView(makeSectionTitle("Themes"), new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(38)));
+        sideDrawer.addView(themeList, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
-        root.addView(titleView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        root.addView(displayView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(104)));
-        root.addView(modeView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        root.addView(historyScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
-        root.addView(tabBar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        root.addView(keyScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        calculatorPanel.addView(header, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        calculatorPanel.addView(displayView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(104)));
+        calculatorPanel.addView(modeView, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        calculatorPanel.addView(modeSelector, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)));
+        calculatorPanel.addView(keypad, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
+        root.addView(calculatorPanel, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        root.addView(sideDrawer, new LinearLayout.LayoutParams(dp(0), ViewGroup.LayoutParams.MATCH_PARENT));
+
+        loadHistoryFromDatabase();
         applyStyle();
+        rebuildThemes();
         rebuildKeypad();
         updateDisplay();
+        SetHistoryDrawerOpen(false);
         container.$add(this);
         Width(ViewGroup.LayoutParams.MATCH_PARENT);
-        Height(dp(520));
+        Height(ViewGroup.LayoutParams.MATCH_PARENT);
     }
 
     @Override
@@ -122,7 +157,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     public void AddToArrangement(AndroidViewComponent arrangement) {
         ViewGroup parent = (ViewGroup) arrangement.getView();
         if (root.getParent() != null) ((ViewGroup) root.getParent()).removeView(root);
-        parent.addView(root, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        parent.addView(root, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
     }
 
     private void rebuildKeypad() {
@@ -133,10 +168,16 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         for (int r = 0; r < rows.length; r++) {
             LinearLayout row = new LinearLayout(container.$context());
             row.setOrientation(LinearLayout.HORIZONTAL);
-            for (int c = 0; c < rows[r].length; c++) row.addView(makeButton(rows[r][c]), new LinearLayout.LayoutParams(dp(64), dp(54)));
-            keypad.addView(row);
+            row.setPadding(0, dp(4), 0, dp(4));
+            for (int c = 0; c < rows[r].length; c++) {
+                TextView button = makeButton(rows[r][c]);
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(56), 1f);
+                params.setMargins(dp(4), 0, dp(4), 0);
+                row.addView(button, params);
+            }
+            keypad.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
         }
-        refreshTabs();
+        refreshModeSelector();
     }
 
     private TextView makeButton(final String label) {
@@ -145,7 +186,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         button.setTextSize(label.length() > 3 ? 13 : 18);
         button.setTypeface(Typeface.DEFAULT_BOLD);
         button.setGravity(Gravity.CENTER);
-        button.setTextColor(Color.WHITE);
+        button.setTextColor(textColor);
         button.setBackground(makeRound(buttonColor(label), dp(14), 0));
         button.setPadding(dp(4), dp(4), dp(4), dp(4));
         button.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { press(label); }});
@@ -179,6 +220,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
             String result = format(value);
             history.add(0, input + " = " + result);
             expression = result;
+            saveHistoryToDatabase();
             redrawHistory();
             CalculationCompleted(input, result);
         } catch (Exception e) {
@@ -187,16 +229,59 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         }
     }
 
-    private void updateDisplay() { displayView.setText(expression.length() == 0 ? "0" : expression); modeView.setText((radians ? "RAD" : "DEG") + "  •  " + (advancedMode ? "Advanced" : "Basic")); }
-    private void redrawHistory() { historyList.removeAllViews(); for (String h : history) { TextView row = new TextView(container.$context()); row.setText(h); row.setTextColor(mutedTextColor); row.setTextSize(14); row.setGravity(Gravity.RIGHT); row.setPadding(dp(8), dp(5), dp(8), dp(5)); historyList.addView(row); } }
+    private void updateDisplay() { displayView.setText(expression.length() == 0 ? "0" : expression); modeView.setText((radians ? "RAD" : "DEG") + "  •  " + (advancedMode ? "Advanced" : "Basic")); refreshModeSelector(); }
+    private void redrawHistory() { historyList.removeAllViews(); if (history.size() == 0) { TextView empty = makeHistoryRow("No calculations yet"); empty.setGravity(Gravity.CENTER); historyList.addView(empty); return; } for (final String h : history) { TextView row = makeHistoryRow(h); row.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { expression = h; updateDisplay(); HistoryItemSelected(h); }}); historyList.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)); } }
     private String lastAnswer() { return history.size() == 0 ? "0" : history.get(0).substring(history.get(0).lastIndexOf("=") + 1).trim(); }
     private boolean isFunction(String key) { return "sin cos tan asin acos atan sinh cosh tanh log ln".contains(key); }
     private String format(double v) { if (Double.isNaN(v) || Double.isInfinite(v)) throw new RuntimeException("Math error"); return resultFormat.format(v); }
     private int buttonColor(String label) { if ("=".equals(label)) return equalsButtonColor; if ("C".equals(label) || "⌫".equals(label) || "HIST".equals(label)) return dangerButtonColor; if ("+-×÷^()%±".contains(label)) return operatorButtonColor; if (Character.isDigit(label.charAt(0)) || ".".equals(label)) return numberButtonColor; return functionButtonColor; }
 
-    private void applyStyle() { root.setBackgroundColor(backgroundColor); titleView.setText(title); titleView.setTextColor(textColor); displayView.setTextColor(textColor); displayView.setBackground(makeRound(displayColor, dp(cornerRadiusDp), dp(1))); modeView.setTextColor(mutedTextColor); historyList.setBackground(makeRound(panelColor, dp(14), 0)); refreshTabs(); }
-    private void refreshTabs() { if (basicTab == null) return; basicTab.setTextColor(textColor); advancedTab.setTextColor(textColor); basicTab.setBackground(makeRound(advancedMode ? panelColor : operatorButtonColor, dp(20), 0)); advancedTab.setBackground(makeRound(advancedMode ? operatorButtonColor : panelColor, dp(20), 0)); }
-    private TextView makeTab(String label) { TextView tab = new TextView(container.$context()); tab.setText(label); tab.setTextSize(15); tab.setTypeface(Typeface.DEFAULT_BOLD); tab.setGravity(Gravity.CENTER); return tab; }
+    private void applyStyle() { root.setBackgroundColor(backgroundColor); calculatorPanel.setBackgroundColor(backgroundColor); sideDrawer.setBackground(makeRound(panelColor, dp(18), dp(1))); titleView.setText(title); titleView.setTextColor(textColor); drawerToggle.setTextColor(textColor); drawerToggle.setBackground(makeRound(panelColor, dp(18), 0)); displayView.setTextColor(textColor); displayView.setBackground(makeRound(displayColor, dp(cornerRadiusDp), dp(1))); modeView.setTextColor(mutedTextColor); modeSelector.setTextColor(textColor); modeSelector.setBackground(makeRound(panelColor, dp(16), dp(1))); refreshModeSelector(); rebuildThemes(); redrawHistory(); }
+    private void refreshModeSelector() { if (modeSelector != null) modeSelector.setText("Mode: " + (advancedMode ? "Advanced" : "Basic") + " ▾"); }
+    private TextView makeTab(String label) { TextView tab = new TextView(container.$context()); tab.setText(label); tab.setTextSize(15); tab.setTypeface(Typeface.DEFAULT_BOLD); tab.setGravity(Gravity.CENTER); tab.setPadding(dp(8), 0, dp(8), 0); return tab; }
+    private TextView makeHeaderAction(String label) { TextView action = makeTab(label); action.setPadding(dp(12), 0, dp(12), 0); return action; }
+    private TextView makeSectionTitle(String label) { TextView title = makeTab(label); title.setGravity(Gravity.CENTER_VERTICAL); title.setTextColor(textColor); return title; }
+    private TextView makeHistoryRow(String value) { TextView row = new TextView(container.$context()); row.setText(value); row.setTextColor(mutedTextColor); row.setTextSize(14); row.setGravity(Gravity.RIGHT); row.setPadding(dp(10), dp(8), dp(10), dp(8)); row.setBackground(makeRound(displayColor, dp(12), 0)); return row; }
+
+    private void rebuildThemes() {
+        if (themeList == null) return;
+        themeList.removeAllViews();
+        addThemeOption(0, "Midnight");
+        addThemeOption(1, "Ocean");
+        addThemeOption(2, "Solar");
+    }
+
+    private void addThemeOption(final int theme, String label) {
+        TextView option = makeTab((selectedTheme == theme ? "✓ " : "") + label);
+        option.setTextColor(textColor);
+        option.setBackground(makeRound(selectedTheme == theme ? operatorButtonColor : displayColor, dp(14), 0));
+        option.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { SetTheme(theme); }});
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42));
+        params.setMargins(0, dp(4), 0, dp(4));
+        themeList.addView(option, params);
+    }
+
+    private void saveHistoryToDatabase() {
+        SharedPreferences.Editor editor = container.$context().getSharedPreferences(HISTORY_PREF, 0).edit();
+        editor.putString("history", History());
+        editor.apply();
+    }
+
+    private void loadHistoryFromDatabase() {
+        history.clear();
+        String stored = container.$context().getSharedPreferences(HISTORY_PREF, 0).getString("history", "");
+        if (stored.length() > 0) {
+            String[] rows = stored.split("\n");
+            for (String row : rows) if (row.trim().length() > 0) history.add(row);
+        }
+        redrawHistory();
+    }
+
+    @SimpleFunction(description = "Opens or collapses the right history and theme navigation panel.") public void SetHistoryDrawerOpen(boolean value) { drawerOpen = value; ViewGroup.LayoutParams params = sideDrawer.getLayoutParams(); if (params != null) { params.width = drawerOpen ? dp(240) : 0; sideDrawer.setLayoutParams(params); } sideDrawer.setVisibility(drawerOpen ? View.VISIBLE : View.GONE); drawerToggle.setText(drawerOpen ? "History ›" : "☰ History"); }
+    @SimpleFunction(description = "Saves the current history to local database storage.") public void SaveHistoryToDatabase() { saveHistoryToDatabase(); }
+    @SimpleFunction(description = "Loads saved history from local database storage.") public void LoadHistoryFromDatabase() { loadHistoryFromDatabase(); }
+    @SimpleFunction(description = "Selects one of the built-in themes. Use 0 for Midnight, 1 for Ocean, or 2 for Solar.") public void SetTheme(int theme) { selectedTheme = theme; if (theme == 1) { backgroundColor = Color.rgb(3, 37, 65); panelColor = Color.rgb(12, 74, 110); displayColor = Color.rgb(2, 24, 43); operatorButtonColor = Color.rgb(14, 165, 233); equalsButtonColor = Color.rgb(45, 212, 191); functionButtonColor = Color.rgb(30, 94, 131); numberButtonColor = Color.rgb(21, 63, 94); textColor = Color.WHITE; mutedTextColor = Color.rgb(186, 230, 253); } else if (theme == 2) { backgroundColor = Color.rgb(255, 251, 235); panelColor = Color.rgb(254, 243, 199); displayColor = Color.WHITE; operatorButtonColor = Color.rgb(245, 158, 11); equalsButtonColor = Color.rgb(22, 163, 74); functionButtonColor = Color.rgb(251, 191, 36); numberButtonColor = Color.rgb(253, 230, 138); textColor = Color.rgb(31, 41, 55); mutedTextColor = Color.rgb(92, 72, 48); } else { selectedTheme = 0; backgroundColor = Color.rgb(18, 22, 31); panelColor = Color.rgb(29, 35, 49); displayColor = Color.rgb(9, 13, 20); numberButtonColor = Color.rgb(48, 56, 73); operatorButtonColor = Color.rgb(255, 149, 0); functionButtonColor = Color.rgb(75, 85, 105); equalsButtonColor = Color.rgb(34, 197, 94); textColor = Color.WHITE; mutedTextColor = Color.rgb(185, 194, 210); } applyStyle(); rebuildKeypad(); }
+
     private GradientDrawable makeRound(int color, int radius, int stroke) { GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(radius); if (stroke > 0) d.setStroke(stroke, Color.rgb(68, 78, 99)); return d; }
     private int dp(int value) { return Math.round(value * container.$context().getResources().getDisplayMetrics().density); }
 
@@ -204,7 +289,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     @SimpleFunction(description = "Returns the current calculator expression or result.") public String Expression() { return expression; }
     @SimpleFunction(description = "Evaluates the current display expression and returns the result.") public String Calculate() { calculate(); updateDisplay(); return expression; }
     @SimpleFunction(description = "Clears the display.") public void Clear() { expression = ""; updateDisplay(); }
-    @SimpleFunction(description = "Clears calculation history.") public void ClearHistory() { history.clear(); redrawHistory(); }
+    @SimpleFunction(description = "Clears calculation history.") public void ClearHistory() { history.clear(); saveHistoryToDatabase(); redrawHistory(); }
     @SimpleFunction(description = "Returns calculation history separated by new lines.") public String History() { StringBuilder b = new StringBuilder(); for (int i = 0; i < history.size(); i++) { if (i > 0) b.append("\n"); b.append(history.get(i)); } return b.toString(); }
     @SimpleFunction(description = "Shows either the basic or advanced scientific keypad.") public void SetAdvancedMode(boolean value) { advancedMode = value; rebuildKeypad(); updateDisplay(); }
     @SimpleFunction(description = "Sets trigonometry mode. True uses radians; false uses degrees.") public void SetRadians(boolean value) { radians = value; updateDisplay(); }
@@ -219,6 +304,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     @SimpleEvent(description = "Triggered whenever a calculator key is clicked. Returns key and display text.") public void ButtonClicked(String key, String displayText) { EventDispatcher.dispatchEvent(this, "ButtonClicked", key, displayText); }
     @SimpleEvent(description = "Triggered after a successful calculation. Returns expression and result.") public void CalculationCompleted(String sourceExpression, String result) { EventDispatcher.dispatchEvent(this, "CalculationCompleted", sourceExpression, result); }
     @SimpleEvent(description = "Triggered when calculation fails. Returns expression and error message.") public void CalculationError(String sourceExpression, String message) { EventDispatcher.dispatchEvent(this, "CalculationError", sourceExpression, message); }
+    @SimpleEvent(description = "Triggered when a history item is selected.") public void HistoryItemSelected(String historyItem) { EventDispatcher.dispatchEvent(this, "HistoryItemSelected", historyItem); }
 
     private class Parser {
         private final String s; private int pos = -1, ch; Parser(String s) { this.s = s.replace("π", String.valueOf(Math.PI)); next(); }
