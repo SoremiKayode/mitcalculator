@@ -8,6 +8,10 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.text.InputType;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -29,7 +33,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     private final LinearLayout calculatorPanel;
     private final LinearLayout sideDrawer;
     private final TextView titleView;
-    private final TextView displayView;
+    private final EditText displayView;
     private final TextView modeView;
     private final TextView drawerToggle;
     private final TextView modeSelector;
@@ -73,6 +77,8 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     private boolean radians = false;
     private boolean evaluating = false;
     private long lastPressTime = 0;
+    private boolean updatingDisplay = false;
+    private int pendingCursorPosition = 0;
     private int drawerWidthDp = 220;
     private String expression = "";
     private String title = "Scientific Calculator";
@@ -110,13 +116,25 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         header.addView(titleView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         header.addView(drawerToggle, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)));
 
-        displayView = new TextView(container.$context());
+        displayView = new EditText(container.$context());
         displayView.setTextSize(32);
         displayView.setTypeface(Typeface.MONOSPACE, Typeface.BOLD);
         displayView.setGravity(Gravity.RIGHT | Gravity.CENTER_VERTICAL);
         displayView.setSingleLine(false);
         displayView.setMinLines(2);
         displayView.setPadding(dp(16), dp(10), dp(16), dp(10));
+        displayView.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        displayView.setSelectAllOnFocus(false);
+        displayView.addTextChangedListener(new TextWatcher() {
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) { }
+            public void onTextChanged(CharSequence s, int start, int before, int count) { }
+            public void afterTextChanged(Editable s) {
+                if (!updatingDisplay) {
+                    expression = s.toString();
+                    ExpressionEdited(expression);
+                }
+            }
+        });
 
         modeView = new TextView(container.$context());
         modeView.setTextSize(12);
@@ -192,24 +210,70 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
 
     private void rebuildKeypad() {
         keypad.removeAllViews();
-        String[][] rows = advancedMode
-                ? new String[][]{{"sin", "cos", "tan", "log", "ln", "√"}, {"asin", "acos", "atan", "π", "e", "^"}, {"sinh", "cosh", "tanh", "!", "%", "RAD"}, {"7", "8", "9", "÷", "(", ")"}, {"4", "5", "6", "×", "C", "⌫"}, {"1", "2", "3", "-", "ANS", "="}, {"0", ".", "±", "+", "EXP", "HIST"}}
-                : new String[][]{{"C", "⌫", "(", ")", "÷"}, {"7", "8", "9", "×", "√"}, {"4", "5", "6", "-", "^"}, {"1", "2", "3", "+", "%"}, {"0", ".", "±", "π", "="}};
-        for (int r = 0; r < rows.length; r++) {
+        String[] keys = advancedMode
+                ? new String[]{"sin", "cos", "tan", "log", "ln", "√", "asin", "acos", "atan", "π", "e", "^", "sinh", "cosh", "tanh", "!", "%", "RAD", "7", "8", "9", "÷", "(", ")", "4", "5", "6", "×", "C", "⌫", "1", "2", "3", "-", "ANS", "=", "0", ".", "±", "+", "EXP", "HIST"}
+                : new String[]{"C", "⌫", "(", ")", "7", "8", "9", "÷", "4", "5", "6", "×", "1", "2", "3", "-", "0", ".", "±", "+", "√", "^", "%", "π", "="};
+        int columns = columnsForKeypad(keys.length);
+        int rows = (int) Math.ceil(keys.length / (double) columns);
+        int buttonHeight = buttonHeightForRows(rows);
+        for (int r = 0; r < rows; r++) {
             LinearLayout row = new LinearLayout(container.$context());
             row.setOrientation(LinearLayout.HORIZONTAL);
             row.setPadding(0, 0, 0, 0);
-            for (int c = 0; c < rows[r].length; c++) {
-                TextView button = makeButton(rows[r][c]);
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, dp(48), 1f);
+            for (int c = 0; c < columns; c++) {
+                int index = (r * columns) + c;
+                if (index >= keys.length) {
+                    row.addView(new TextView(container.$context()), new LinearLayout.LayoutParams(0, buttonHeight, 1f));
+                    continue;
+                }
+                TextView button = makeButton(keys[index]);
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, buttonHeight, 1f);
                 params.setMargins(dp(2), 0, dp(2), 0);
                 row.addView(button, params);
             }
-            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48));
+            LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, buttonHeight);
             rowParams.setMargins(0, 0, 0, dp(4));
             keypad.addView(row, rowParams);
         }
+        keypad.post(new Runnable() { public void run() { resizeKeypadRows(); }});
         refreshModeSelector();
+    }
+
+    private int columnsForKeypad(int keyCount) {
+        int availableWidth = keypad == null ? 0 : keypad.getWidth();
+        int minButtonWidth = advancedMode ? dp(54) : dp(70);
+        if (availableWidth <= 0) return advancedMode ? 6 : 4;
+        int calculated = Math.max(1, availableWidth / minButtonWidth);
+        return advancedMode ? Math.max(4, Math.min(6, calculated)) : 4;
+    }
+
+    private int buttonHeightForRows(int rows) {
+        int availableHeight = keypad == null ? 0 : keypad.getHeight();
+        if (availableHeight <= 0) return dp(advancedMode ? 48 : 56);
+        int gapSpace = dp(4) * Math.max(0, rows - 1);
+        int calculated = (availableHeight - gapSpace - dp(6)) / Math.max(1, rows);
+        return Math.max(dp(48), Math.min(dp(76), calculated));
+    }
+
+    private void resizeKeypadRows() {
+        int rows = keypad.getChildCount();
+        if (rows == 0) return;
+        int buttonHeight = buttonHeightForRows(rows);
+        for (int r = 0; r < rows; r++) {
+            View rowView = keypad.getChildAt(r);
+            ViewGroup.LayoutParams rowParams = rowView.getLayoutParams();
+            rowParams.height = buttonHeight;
+            rowView.setLayoutParams(rowParams);
+            if (rowView instanceof LinearLayout) {
+                LinearLayout row = (LinearLayout) rowView;
+                for (int c = 0; c < row.getChildCount(); c++) {
+                    View child = row.getChildAt(c);
+                    ViewGroup.LayoutParams childParams = child.getLayoutParams();
+                    childParams.height = buttonHeight;
+                    child.setLayoutParams(childParams);
+                }
+            }
+        }
     }
 
     private TextView makeButton(final String label) {
@@ -229,24 +293,27 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         long now = System.currentTimeMillis();
         if (now - lastPressTime < 140) return;
         lastPressTime = now;
+        syncExpressionFromDisplay();
         if (drawerOpen && !"HIST".equals(key)) SetHistoryDrawerOpen(false);
         String nextExpression = expression;
-        if ("C".equals(key)) nextExpression = "";
-        else if ("⌫".equals(key)) nextExpression = expression.length() == 0 ? "" : expression.substring(0, expression.length() - 1);
+        int nextCursor = displayView.getSelectionStart();
+        if ("C".equals(key)) { nextExpression = ""; nextCursor = 0; }
+        else if ("⌫".equals(key)) { nextExpression = deleteSelectionOrPreviousCharacter(); nextCursor = pendingCursorPosition; }
         else if ("=".equals(key)) { calculate(); updateDisplay(); ButtonClicked(key, expression); return; }
-        else if ("±".equals(key)) nextExpression = appendIfValid("-");
-        else if ("π".equals(key)) nextExpression = appendIfValid("π");
-        else if ("÷".equals(key)) nextExpression = appendIfValid("/");
-        else if ("×".equals(key)) nextExpression = appendIfValid("*");
-        else if ("√".equals(key)) nextExpression = appendIfValid("sqrt(");
-        else if ("EXP".equals(key)) nextExpression = appendIfValid("E");
+        else if ("±".equals(key)) nextExpression = insertIfValid("-");
+        else if ("π".equals(key)) nextExpression = insertIfValid("π");
+        else if ("÷".equals(key)) nextExpression = insertIfValid("/");
+        else if ("×".equals(key)) nextExpression = insertIfValid("*");
+        else if ("√".equals(key)) nextExpression = insertIfValid("sqrt(");
+        else if ("EXP".equals(key)) nextExpression = insertIfValid("E");
         else if ("RAD".equals(key)) { radians = !radians; }
         else if ("HIST".equals(key)) { SetHistoryDrawerOpen(!drawerOpen); }
-        else if ("ANS".equals(key)) nextExpression = appendIfValid(lastAnswer());
-        else if (isFunction(key)) nextExpression = appendIfValid(key + "(");
-        else nextExpression = appendIfValid(key);
+        else if ("ANS".equals(key)) nextExpression = insertIfValid(lastAnswer());
+        else if (isFunction(key)) nextExpression = insertIfValid(key + "(");
+        else nextExpression = insertIfValid(key);
         expression = nextExpression;
-        updateDisplay();
+        if (!"RAD".equals(key) && !"HIST".equals(key) && !"⌫".equals(key) && !"C".equals(key)) nextCursor = pendingCursorPosition;
+        updateDisplay(nextCursor);
         ButtonClicked(key, expression);
     }
 
@@ -270,10 +337,45 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         }
     }
 
-    private void updateDisplay() { displayView.setText(expression.length() == 0 ? "0" : expression); modeView.setText((radians ? "RAD" : "DEG") + "  •  " + (advancedMode ? "Advanced" : "Basic")); refreshModeSelector(); }
+    private void updateDisplay() { updateDisplay(expression.length()); }
+    private void updateDisplay(int cursorPosition) {
+        String text = expression.length() == 0 ? "0" : expression;
+        if (!text.equals(displayView.getText().toString())) {
+            updatingDisplay = true;
+            displayView.setText(text);
+            updatingDisplay = false;
+        }
+        int cursor = Math.max(0, Math.min(cursorPosition, displayView.getText().length()));
+        displayView.setSelection(cursor);
+        modeView.setText((radians ? "RAD" : "DEG") + "  •  " + (advancedMode ? "Advanced" : "Basic"));
+        refreshModeSelector();
+    }
     private void redrawHistory() { historyList.removeAllViews(); if (history.size() == 0) { TextView empty = makeHistoryRow("No calculations yet"); empty.setGravity(Gravity.CENTER); historyList.addView(empty); return; } for (final String h : history) { TextView row = makeHistoryRow(h); row.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { expression = h; updateDisplay(); HistoryItemSelected(h); }}); LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT); params.setMargins(0, dp(3), 0, dp(3)); historyList.addView(row, params); } }
     private String lastAnswer() { return history.size() == 0 ? "0" : history.get(0).substring(history.get(0).lastIndexOf("=") + 1).trim(); }
-    private String appendIfValid(String token) { String candidate = expression + token; return canAccept(candidate) ? candidate : expression; }
+    private void syncExpressionFromDisplay() { expression = displayView.getText().toString(); if ("0".equals(expression)) expression = ""; }
+    private String deleteSelectionOrPreviousCharacter() {
+        int start = Math.min(expression.length(), Math.max(0, displayView.getSelectionStart()));
+        int end = Math.min(expression.length(), Math.max(0, displayView.getSelectionEnd()));
+        if (start != end) {
+            int left = Math.min(start, end);
+            int right = Math.max(start, end);
+            pendingCursorPosition = left;
+            return expression.substring(0, left) + expression.substring(right);
+        }
+        if (start == 0 || expression.length() == 0) { pendingCursorPosition = 0; return expression; }
+        pendingCursorPosition = start - 1;
+        return expression.substring(0, start - 1) + expression.substring(start);
+    }
+    private String insertIfValid(String token) {
+        int start = Math.min(expression.length(), Math.max(0, displayView.getSelectionStart()));
+        int end = Math.min(expression.length(), Math.max(0, displayView.getSelectionEnd()));
+        int left = Math.min(start, end);
+        int right = Math.max(start, end);
+        String candidate = expression.substring(0, left) + token + expression.substring(right);
+        if (!canAccept(candidate)) { pendingCursorPosition = start; return expression; }
+        pendingCursorPosition = left + token.length();
+        return candidate;
+    }
     private boolean canAccept(String candidate) { if (candidate.length() > 96) return false; if (candidate.contains("..") || candidate.contains("EE")) return false; if (candidate.startsWith("*") || candidate.startsWith("/") || candidate.startsWith("%") || candidate.startsWith("^")) return false; if (openParens(candidate) < 0) return false; return hasValidTokenFlow(candidate); }
     private int openParens(String value) { int open = 0; for (int i = 0; i < value.length(); i++) { char ch = value.charAt(i); if (ch == '(') open++; else if (ch == ')') open--; if (open < 0) return -1; } return open; }
     private boolean isCompleteExpression(String value) { if (openParens(value) != 0) return false; char last = value.charAt(value.length() - 1); return "+-*/%^E(.".indexOf(last) < 0; }
@@ -343,7 +445,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
 
     @SimpleFunction(description = "Sets the displayed calculator expression.") public void SetExpression(String value) { expression = value == null ? "" : value; updateDisplay(); }
     @SimpleFunction(description = "Returns the current calculator expression or result.") public String Expression() { return expression; }
-    @SimpleFunction(description = "Evaluates the current display expression and returns the result.") public String Calculate() { calculate(); updateDisplay(); return expression; }
+    @SimpleFunction(description = "Evaluates the current editable display expression and returns the result.") public String Calculate() { syncExpressionFromDisplay(); calculate(); updateDisplay(); return expression; }
     @SimpleFunction(description = "Clears the display.") public void Clear() { expression = ""; updateDisplay(); }
     @SimpleFunction(description = "Clears calculation history.") public void ClearHistory() { history.clear(); saveHistoryToDatabase(); redrawHistory(); }
     @SimpleFunction(description = "Returns calculation history separated by new lines.") public String History() { StringBuilder b = new StringBuilder(); for (int i = 0; i < history.size(); i++) { if (i > 0) b.append("\n"); b.append(history.get(i)); } return b.toString(); }
@@ -357,6 +459,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     @SimpleProperty(description = "Text color.") public void TextColor(int value) { textColor = value; applyStyle(); rebuildKeypad(); }
     @SimpleProperty(description = "Corner radius in dp.") public void CornerRadius(int value) { cornerRadiusDp = value; applyStyle(); rebuildKeypad(); }
 
+    @SimpleEvent(description = "Triggered whenever the editable display text changes. Returns the edited expression.") public void ExpressionEdited(String displayText) { EventDispatcher.dispatchEvent(this, "ExpressionEdited", displayText); }
     @SimpleEvent(description = "Triggered whenever a calculator key is clicked. Returns key and display text.") public void ButtonClicked(String key, String displayText) { EventDispatcher.dispatchEvent(this, "ButtonClicked", key, displayText); }
     @SimpleEvent(description = "Triggered after a successful calculation. Returns expression and result.") public void CalculationCompleted(String sourceExpression, String result) { EventDispatcher.dispatchEvent(this, "CalculationCompleted", sourceExpression, result); }
     @SimpleEvent(description = "Triggered when calculation fails. Returns expression and error message.") public void CalculationError(String sourceExpression, String message) { EventDispatcher.dispatchEvent(this, "CalculationError", sourceExpression, message); }
