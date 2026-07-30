@@ -53,7 +53,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     private int equalsButtonColor = Color.argb(235, 35, 200, 120);
     private int dangerButtonColor = Color.argb(230, 245, 77, 91);
     private int buttonOutlineColor = Color.argb(155, 255, 255, 255);
-    private int buttonOutlineWidthDp = 1;
+    private int buttonOutlineWidthDp = 0;
     private int textColor = Color.WHITE;
     private int mutedTextColor = Color.argb(230, 202, 211, 226);
     private String customThemeName = "Custom";
@@ -227,8 +227,8 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
                     continue;
                 }
                 TextView button = makeButton(keys[index]);
-                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, buttonHeight, 1f);
-                params.setMargins(dp(2), 0, dp(2), 0);
+                LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
+                params.setMargins(dp(2), dp(2), dp(2), dp(2));
                 row.addView(button, params);
             }
             LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, buttonHeight);
@@ -241,10 +241,15 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
 
     private int columnsForKeypad(int keyCount) {
         int availableWidth = keypad == null ? 0 : keypad.getWidth();
-        int minButtonWidth = advancedMode ? dp(54) : dp(70);
-        if (availableWidth <= 0) return advancedMode ? 6 : 4;
+        if (drawerOpen && root != null && root.getWidth() > 0) {
+            int rootPadding = root.getPaddingLeft() + root.getPaddingRight();
+            availableWidth = Math.max(0, root.getWidth() - dp(drawerWidthDp) - rootPadding);
+        }
+        int minButtonWidth = advancedMode ? dp(52) : dp(70);
+        if (availableWidth <= 0) return advancedMode ? (drawerOpen ? 5 : 6) : 4;
         int calculated = Math.max(1, availableWidth / minButtonWidth);
-        return advancedMode ? Math.max(4, Math.min(6, calculated)) : 4;
+        int maxAdvancedColumns = drawerOpen ? 5 : 6;
+        return advancedMode ? Math.max(4, Math.min(maxAdvancedColumns, calculated)) : 4;
     }
 
     private int buttonHeightForRows(int rows) {
@@ -269,7 +274,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
                 for (int c = 0; c < row.getChildCount(); c++) {
                     View child = row.getChildAt(c);
                     ViewGroup.LayoutParams childParams = child.getLayoutParams();
-                    childParams.height = buttonHeight;
+                    childParams.height = ViewGroup.LayoutParams.MATCH_PARENT;
                     child.setLayoutParams(childParams);
                 }
             }
@@ -385,12 +390,12 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     private String format(double v) { if (Double.isNaN(v) || Double.isInfinite(v)) throw new RuntimeException("Math error"); return resultFormat.format(v); }
     private int buttonColor(String label) { if ("=".equals(label)) return equalsButtonColor; if ("C".equals(label) || "⌫".equals(label) || "HIST".equals(label)) return dangerButtonColor; if ("+-×÷^()%±".contains(label)) return operatorButtonColor; if (Character.isDigit(label.charAt(0)) || ".".equals(label)) return numberButtonColor; return functionButtonColor; }
 
-    private void applyStyle() { root.setBackgroundColor(backgroundColor); calculatorPanel.setBackgroundColor(backgroundColor); sideDrawer.setBackground(makeRound(historyColor, dp(18), dp(1))); titleView.setText(title); titleView.setTextColor(textColor); drawerToggle.setTextColor(textColor); drawerToggle.setBackground(makeRound(panelColor, dp(18), dp(1))); displayView.setTextColor(textColor); displayView.setBackground(makeRound(displayColor, dp(cornerRadiusDp), dp(1))); modeView.setTextColor(mutedTextColor); modeSelector.setTextColor(textColor); modeSelector.setBackground(makeRound(panelColor, dp(16), dp(1))); refreshModeSelector(); rebuildThemes(); redrawHistory(); }
+    private void applyStyle() { root.setBackgroundColor(backgroundColor); calculatorPanel.setBackgroundColor(backgroundColor); sideDrawer.setBackground(makeRound(historyColor, dp(18), 0)); titleView.setText(title); titleView.setTextColor(textColor); drawerToggle.setTextColor(textColor); drawerToggle.setBackground(makeRound(panelColor, dp(18), 0)); displayView.setTextColor(textColor); displayView.setBackground(makeRound(displayColor, dp(cornerRadiusDp), 0)); modeView.setTextColor(mutedTextColor); modeSelector.setTextColor(textColor); modeSelector.setBackground(makeRound(panelColor, dp(16), 0)); refreshModeSelector(); rebuildThemes(); redrawHistory(); }
     private void refreshModeSelector() { if (modeSelector != null) modeSelector.setText("Mode: " + (advancedMode ? "Advanced" : "Basic") + " ▾"); }
     private TextView makeTab(String label) { TextView tab = new TextView(container.$context()); tab.setText(label); tab.setTextSize(15); tab.setTypeface(Typeface.DEFAULT_BOLD); tab.setGravity(Gravity.CENTER); tab.setPadding(dp(8), 0, dp(8), 0); return tab; }
     private TextView makeHeaderAction(String label) { TextView action = makeTab(label); action.setPadding(dp(12), 0, dp(12), 0); return action; }
     private TextView makeSectionTitle(String label) { TextView title = makeTab(label); title.setGravity(Gravity.CENTER_VERTICAL); title.setTextColor(textColor); return title; }
-    private TextView makeHistoryRow(String value) { TextView row = new TextView(container.$context()); row.setText(value); row.setTextColor(mutedTextColor); row.setTextSize(14); row.setGravity(Gravity.RIGHT); row.setPadding(dp(10), dp(8), dp(10), dp(8)); row.setBackground(makeRound(Color.TRANSPARENT, dp(10), dp(1))); return row; }
+    private TextView makeHistoryRow(String value) { TextView row = new TextView(container.$context()); row.setText(value); row.setTextColor(mutedTextColor); row.setTextSize(14); row.setGravity(Gravity.RIGHT); row.setPadding(dp(10), dp(8), dp(10), dp(8)); row.setBackground(makeRound(Color.TRANSPARENT, dp(10), 0)); return row; }
 
     private void rebuildThemes() {
         if (themeList == null) return;
@@ -404,7 +409,7 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
     private void addThemeOption(final int theme, String label) {
         TextView option = makeTab((selectedTheme == theme ? "✓ " : "") + label);
         option.setTextColor(textColor);
-        option.setBackground(makeRound(selectedTheme == theme ? operatorButtonColor : Color.TRANSPARENT, dp(14), dp(1)));
+        option.setBackground(makeRound(selectedTheme == theme ? operatorButtonColor : Color.TRANSPARENT, dp(14), 0));
         option.setOnClickListener(new View.OnClickListener() { public void onClick(View v) { SetTheme(theme); }});
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42));
         params.setMargins(0, dp(4), 0, dp(4));
@@ -427,12 +432,18 @@ public class CodeIgniteCalculator extends AndroidViewComponent {
         redrawHistory();
     }
 
-    @SimpleFunction(description = "Opens or collapses the right history and theme navigation panel.") public void SetHistoryDrawerOpen(boolean value) { drawerOpen = value; ViewGroup.LayoutParams params = sideDrawer.getLayoutParams(); if (params != null) { params.width = drawerOpen ? dp(drawerWidthDp) : 0; sideDrawer.setLayoutParams(params); } sideDrawer.setVisibility(drawerOpen ? View.VISIBLE : View.GONE); drawerToggle.setText(drawerOpen ? "History ›" : "History ☰"); }
-    @SimpleFunction(description = "Sets the open history drawer width in dp. Values are clamped between 160 and 360.") public void SetHistoryDrawerWidth(int widthDp) { drawerWidthDp = Math.max(160, Math.min(360, widthDp)); if (drawerOpen) SetHistoryDrawerOpen(true); }
+    @SimpleFunction(description = "Opens or collapses the right history and theme navigation panel.") public void SetHistoryDrawerOpen(boolean value) { drawerOpen = value; ViewGroup.LayoutParams params = sideDrawer.getLayoutParams(); if (params != null) { params.width = drawerOpen ? dp(drawerWidthDp) : 0; sideDrawer.setLayoutParams(params); } sideDrawer.setVisibility(drawerOpen ? View.VISIBLE : View.GONE); drawerToggle.setText(drawerOpen ? "History ›" : "History ☰"); scheduleKeypadRebuild(); }
+    @SimpleFunction(description = "Sets the open history drawer width in dp. Values are clamped between 160 and 360.") public void SetHistoryDrawerWidth(int widthDp) { drawerWidthDp = Math.max(160, Math.min(360, widthDp)); if (drawerOpen) SetHistoryDrawerOpen(true); else scheduleKeypadRebuild(); }
     @SimpleFunction(description = "Returns the open history drawer width in dp.") public int HistoryDrawerWidth() { return drawerWidthDp; }
     @SimpleFunction(description = "Saves the current history to local database storage.") public void SaveHistoryToDatabase() { saveHistoryToDatabase(); }
     @SimpleFunction(description = "Loads saved history from local database storage.") public void LoadHistoryFromDatabase() { loadHistoryFromDatabase(); }
-    @SimpleFunction(description = "Selects one of the built-in themes. Use 0 for Midnight, 1 for Ocean, 2 for Solar, or 3 for the custom theme created with CreateTheme.") public void SetTheme(int theme) { selectedTheme = theme; if (theme == 1) { backgroundColor = Color.argb(255, 2, 29, 53); panelColor = Color.argb(215, 10, 73, 108); displayColor = Color.argb(235, 1, 22, 39); historyColor = Color.argb(180, 8, 47, 73); operatorButtonColor = Color.argb(232, 14, 165, 233); equalsButtonColor = Color.argb(235, 45, 212, 191); functionButtonColor = Color.argb(218, 29, 91, 128); numberButtonColor = Color.argb(218, 20, 61, 92); dangerButtonColor = Color.argb(232, 244, 63, 94); buttonOutlineColor = Color.argb(150, 186, 230, 253); buttonOutlineWidthDp = 1; textColor = Color.WHITE; mutedTextColor = Color.argb(230, 186, 230, 253); } else if (theme == 2) { backgroundColor = Color.argb(255, 255, 251, 235); panelColor = Color.argb(225, 254, 243, 199); displayColor = Color.argb(235, 255, 255, 255); historyColor = Color.argb(210, 254, 240, 180); operatorButtonColor = Color.argb(232, 245, 158, 11); equalsButtonColor = Color.argb(235, 22, 163, 74); functionButtonColor = Color.argb(220, 251, 191, 36); numberButtonColor = Color.argb(225, 253, 230, 138); dangerButtonColor = Color.argb(232, 220, 38, 38); buttonOutlineColor = Color.argb(135, 120, 89, 30); buttonOutlineWidthDp = 1; textColor = Color.rgb(31, 41, 55); mutedTextColor = Color.rgb(92, 72, 48); } else if (theme == 3) { selectedTheme = 3; backgroundColor = customBackgroundColor; panelColor = customPanelColor; displayColor = customDisplayColor; historyColor = customHistoryColor; numberButtonColor = customNumberButtonColor; operatorButtonColor = customOperatorButtonColor; functionButtonColor = customFunctionButtonColor; equalsButtonColor = customEqualsButtonColor; dangerButtonColor = customDangerButtonColor; textColor = customTextColor; mutedTextColor = customMutedTextColor; buttonOutlineColor = customButtonOutlineColor; buttonOutlineWidthDp = customButtonOutlineWidthDp; } else { selectedTheme = 0; backgroundColor = Color.argb(255, 13, 18, 33); panelColor = Color.argb(214, 26, 35, 56); displayColor = Color.argb(232, 5, 9, 20); historyColor = Color.argb(166, 17, 24, 39); numberButtonColor = Color.argb(218, 49, 61, 86); operatorButtonColor = Color.argb(230, 42, 112, 255); functionButtonColor = Color.argb(218, 78, 89, 116); equalsButtonColor = Color.argb(235, 35, 200, 120); dangerButtonColor = Color.argb(230, 245, 77, 91); buttonOutlineColor = Color.argb(155, 255, 255, 255); buttonOutlineWidthDp = 1; textColor = Color.WHITE; mutedTextColor = Color.argb(230, 202, 211, 226); } applyStyle(); rebuildKeypad(); }
+    @SimpleFunction(description = "Selects one of the built-in themes. Use 0 for Midnight, 1 for Ocean, 2 for Solar, or 3 for the custom theme created with CreateTheme.") public void SetTheme(int theme) { selectedTheme = theme; if (theme == 1) { backgroundColor = Color.argb(255, 2, 29, 53); panelColor = Color.argb(215, 10, 73, 108); displayColor = Color.argb(235, 1, 22, 39); historyColor = Color.argb(180, 8, 47, 73); operatorButtonColor = Color.argb(232, 14, 165, 233); equalsButtonColor = Color.argb(235, 45, 212, 191); functionButtonColor = Color.argb(218, 29, 91, 128); numberButtonColor = Color.argb(218, 20, 61, 92); dangerButtonColor = Color.argb(232, 244, 63, 94); buttonOutlineColor = Color.argb(150, 186, 230, 253); buttonOutlineWidthDp = 0; textColor = Color.WHITE; mutedTextColor = Color.argb(230, 186, 230, 253); } else if (theme == 2) { backgroundColor = Color.argb(255, 255, 251, 235); panelColor = Color.argb(225, 254, 243, 199); displayColor = Color.argb(235, 255, 255, 255); historyColor = Color.argb(210, 254, 240, 180); operatorButtonColor = Color.argb(232, 245, 158, 11); equalsButtonColor = Color.argb(235, 22, 163, 74); functionButtonColor = Color.argb(220, 251, 191, 36); numberButtonColor = Color.argb(225, 253, 230, 138); dangerButtonColor = Color.argb(232, 220, 38, 38); buttonOutlineColor = Color.argb(135, 120, 89, 30); buttonOutlineWidthDp = 0; textColor = Color.rgb(31, 41, 55); mutedTextColor = Color.rgb(92, 72, 48); } else if (theme == 3) { selectedTheme = 3; backgroundColor = customBackgroundColor; panelColor = customPanelColor; displayColor = customDisplayColor; historyColor = customHistoryColor; numberButtonColor = customNumberButtonColor; operatorButtonColor = customOperatorButtonColor; functionButtonColor = customFunctionButtonColor; equalsButtonColor = customEqualsButtonColor; dangerButtonColor = customDangerButtonColor; textColor = customTextColor; mutedTextColor = customMutedTextColor; buttonOutlineColor = customButtonOutlineColor; buttonOutlineWidthDp = customButtonOutlineWidthDp; } else { selectedTheme = 0; backgroundColor = Color.argb(255, 13, 18, 33); panelColor = Color.argb(214, 26, 35, 56); displayColor = Color.argb(232, 5, 9, 20); historyColor = Color.argb(166, 17, 24, 39); numberButtonColor = Color.argb(218, 49, 61, 86); operatorButtonColor = Color.argb(230, 42, 112, 255); functionButtonColor = Color.argb(218, 78, 89, 116); equalsButtonColor = Color.argb(235, 35, 200, 120); dangerButtonColor = Color.argb(230, 245, 77, 91); buttonOutlineColor = Color.argb(155, 255, 255, 255); buttonOutlineWidthDp = 0; textColor = Color.WHITE; mutedTextColor = Color.argb(230, 202, 211, 226); } applyStyle(); rebuildKeypad(); }
+
+
+    private void scheduleKeypadRebuild() {
+        if (keypad == null) return;
+        keypad.post(new Runnable() { public void run() { rebuildKeypad(); }});
+    }
 
     private GradientDrawable makeRound(int color, int radius, int stroke) { GradientDrawable d = new GradientDrawable(); d.setColor(color); d.setCornerRadius(radius); if (stroke > 0) d.setStroke(stroke, buttonOutlineColor); return d; }
     private int dp(int value) { return Math.round(value * container.$context().getResources().getDisplayMetrics().density); }
